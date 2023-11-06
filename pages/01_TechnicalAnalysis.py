@@ -223,4 +223,5 @@ if run_button:
                 showbands=True)
 
     fig = qf.iplot(asFigure=True)
-    st.plotly_chart(fig)
+    fig.update_layout(height=500)
+    st.plotly_chart(fig, use_container_width=True, height=500)
