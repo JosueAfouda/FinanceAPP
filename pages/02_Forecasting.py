@@ -79,18 +79,6 @@ country_holidays = exp_prophet.selectbox("Country Holidays", ['US', 'FR', 'DE', 
 horizon = exp_prophet.number_input("Forecast Horizon (days)", min_value=1, value=365, step=1)
 download_prophet = exp_prophet.checkbox(label="Download Model")
 
-# Parameters for Auto Arima
-exp_arima = st.sidebar.expander("Auto Arima Parameters")
-test_data_percentage2 = exp_arima.number_input("Percentage of Test Data", 0.1, 0.4, 0.2, 0.05)
-m = exp_arima.number_input("The period for seasonal differencing", min_value=1, value=12, step=1)
-information_criterion = exp_arima.selectbox("Information Criterion", ['aic', 'bic', 'hqic', 'oob'])
-test_stat = exp_arima.selectbox("Type of stationarity test", ['adf', 'kpss'])
-seasonal = exp_arima.checkbox(label="Whether to fit a seasonal ARIMA")
-intercept = exp_arima.checkbox(label="Whether to include an intercept term")
-method = exp_arima.selectbox("Which solver is used", ['lbfgs', 'nm', 'bfgs', 'powell', 'cg'])
-max_iter = exp_arima.number_input("Maximum number of iterations", min_value=10, value=50, step=1)
-
-
 #st.subheader("Modeling Process")
 modeling_option = st.sidebar.radio("Select Modeling Process", ["Prophet"])
 
