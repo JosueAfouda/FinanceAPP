@@ -13,6 +13,8 @@ from prophet import Prophet
 from prophet.plot import add_changepoints_to_plot
 from prophet.plot import plot_plotly
 import plotly.express as px
+from prophet.serialize import model_to_json
+import pmdarima as pm
 
 from utils import *
 
@@ -72,21 +74,26 @@ if start_date > end_date:
 st.sidebar.header("Forecasting Process")
 
 exp_prophet = st.sidebar.expander("Prophet Parameters")
-#prophet_flag = exp_prophet.checkbox(label="Prophet")
-test_data_percentage = exp_prophet.number_input("Testing Data Percentage", 
-                                                0.1, 0.4, 0.2, 0.05)
-  
-changepoint_range = exp_prophet.number_input("Changepoint Range", 
-                                                0.05, 0.95, 0.9, 0.05)
- 
-country_holidays = exp_prophet.selectbox("Country Holidays",
-                                         ['US', 'FR', 'DE', 'JP', 'GB'])
+test_data_percentage = exp_prophet.number_input("Testing Data Percentage", 0.1, 0.4, 0.2, 0.05)
+changepoint_range = exp_prophet.number_input("Changepoint Range", 0.05, 0.95, 0.9, 0.05)
+country_holidays = exp_prophet.selectbox("Country Holidays", ['US', 'FR', 'DE', 'JP', 'GB'])
+horizon = exp_prophet.number_input("Forecast Horizon (days)", min_value=1, value=365, step=1)
+download_prophet = exp_prophet.checkbox(label="Download Model")
 
-horizon = exp_prophet.number_input("Forecast Horizon (days)", 
-                                   min_value=1, value=365, step=1)
+# Parameters for Auto Arima
+exp_arima = st.sidebar.expander("Auto Arima Parameters")
+test_data_percentage2 = exp_arima.number_input("Percentage of Test Data", 0.1, 0.4, 0.2, 0.05)
+m = exp_arima.number_input("The period for seasonal differencing", min_value=1, value=12, step=1)
+information_criterion = exp_arima.selectbox("Information Criterion", ['aic', 'bic', 'hqic', 'oob'])
+test_stat = exp_arima.selectbox("Type of stationarity test", ['adf', 'kpss'])
+seasonal = exp_arima.checkbox(label="Whether to fit a seasonal ARIMA")
+intercept = exp_arima.checkbox(label="Whether to include an intercept term")
+method = exp_arima.selectbox("Which solver is used", ['lbfgs', 'nm', 'bfgs', 'powell', 'cg'])
+max_iter = exp_arima.number_input("Maximum number of iterations", min_value=10, value=50, step=1)
+
 
 #st.subheader("Modeling Process")
-modeling_option = st.sidebar.radio("Select Modeling Process", ["Prophet", "PyCaret"])
+modeling_option = st.sidebar.radio("Select Modeling Process", ["Prophet", "Auto Arima"])
 
 
 # main body
@@ -96,6 +103,7 @@ run_button = st.sidebar.button("Run Forecasting")
 if run_button:
 
     df = load_data(ticker, start_date, end_date)
+    #df.dropna(inplace=True)
 
     ## data preview part
     display_data_preview("Preview data", df, key=2)
@@ -129,9 +137,7 @@ if run_button:
         # Create and fit the model
         prophet = Prophet(changepoint_range=changepoint_range)
         prophet.add_country_holidays(country_name=country_holidays)
-        #prophet.add_seasonality(name="annual", 
-                                #period=365, 
-                                #fourier_order=5)
+        #prophet.add_seasonality(name="annual", period=365, fourier_order=5)
         prophet.fit(df_train)
 
         # Predictions on test data
@@ -274,8 +280,67 @@ if run_button:
         st.plotly_chart(fig)
 
 
-    elif modeling_option == "PyCaret":
-        # Modeling process with PyCaret
-        st.write("Running PyCaret Modeling Process...")
-        # ... Add your PyCaret modeling code here ...
+        # Download the Model
+        if download_prophet:
+            with open('serialized_model.json', 'w') as fout:
+                fout.write(model_to_json(new_prophet))
+            st.success("Prophet Model downloaded successfully as 'serialized_prophet_model.json'")
 
+    elif modeling_option == "Auto Arima":
+        # Modeling process with Auto Arima
+        st.write("Running Auto Arima Modeling Process...")
+        # ... Add your Auto Arima modeling code here ...
+        df = df[['Close']]
+
+        # Sequential train/test split with 80% for training and 20% for testing
+        df_train, df_test = train_test_split(df, 
+                                             test_size=test_data_percentage2, 
+                                             shuffle=False, 
+                                             random_state=42)
+
+        # Create and fit the model
+        auto_arima = pm.auto_arima(
+            df_train,
+            m=m,
+            information_criterion=information_criterion,
+            test=test_stat, 
+            seasonal=seasonal, 
+            with_intercept=intercept,
+            stepwise=True,
+            n_jobs=1,
+            method=method,
+            max_iter=max_iter,
+            trace=True,
+            suppress_warnings=True
+        )
+                            
+        st.write("""***Model Summary:***""")
+        st.write(auto_arima.summary())
+
+        st.write("""***Best Model:***""")
+        st.write(auto_arima)
+
+        st.write("""***Model Diagnostics:***""")
+        st.pyplot(auto_arima.plot_diagnostics(figsize=(10, 6), lags=25))
+
+        st.write("""***Actual VS predicted:***""")
+        df_test["Predicted"] = auto_arima.predict(n_period=len(df_test))
+        display_data_preview("Arima Predicted Data", df_test, file_name=f"{ticker}_predicted_data.csv", key=6)
+        # Create a Plotly figure for the chart
+        fig = go.Figure()
+
+        # Add a scatter plot for actual values
+        fig.add_trace(go.Scatter(x=df_test.index, y=df_test['Close'], mode='lines', name='Actual', line=dict(color='blue')))
+
+        # Add a scatter plot for predicted values
+        fig.add_trace(go.Scatter(x=df_test.index, y=df_test['Predicted'], mode='lines', name='Predicted', line=dict(color='orange')))
+
+        # Customize the layout
+        fig.update_layout(
+            title="Actual Vs Predicted",
+            xaxis_title="Date",
+            yaxis_title="Value",
+        )
+
+        # Show the Plotly chart
+        st.plotly_chart(fig)
