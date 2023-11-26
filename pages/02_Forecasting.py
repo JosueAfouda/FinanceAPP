@@ -93,7 +93,7 @@ max_iter = exp_arima.number_input("Maximum number of iterations", min_value=10, 
 
 
 #st.subheader("Modeling Process")
-modeling_option = st.sidebar.radio("Select Modeling Process", ["Prophet", "Auto Arima"])
+modeling_option = st.sidebar.radio("Select Modeling Process", ["Prophet"])
 
 
 # main body
@@ -285,62 +285,3 @@ if run_button:
             with open('serialized_model.json', 'w') as fout:
                 fout.write(model_to_json(new_prophet))
             st.success("Prophet Model downloaded successfully as 'serialized_prophet_model.json'")
-
-    elif modeling_option == "Auto Arima":
-        # Modeling process with Auto Arima
-        st.write("Running Auto Arima Modeling Process...")
-        # ... Add your Auto Arima modeling code here ...
-        df = df[['Close']]
-
-        # Sequential train/test split with 80% for training and 20% for testing
-        df_train, df_test = train_test_split(df, 
-                                             test_size=test_data_percentage2, 
-                                             shuffle=False, 
-                                             random_state=42)
-
-        # Create and fit the model
-        auto_arima = pm.auto_arima(
-            df_train,
-            m=m,
-            information_criterion=information_criterion,
-            test=test_stat, 
-            seasonal=seasonal, 
-            with_intercept=intercept,
-            stepwise=True,
-            n_jobs=1,
-            method=method,
-            max_iter=max_iter,
-            trace=True,
-            suppress_warnings=True
-        )
-                            
-        st.write("""***Model Summary:***""")
-        st.write(auto_arima.summary())
-
-        st.write("""***Best Model:***""")
-        st.write(auto_arima)
-
-        st.write("""***Model Diagnostics:***""")
-        st.pyplot(auto_arima.plot_diagnostics(figsize=(10, 6), lags=25))
-
-        st.write("""***Actual VS predicted:***""")
-        df_test["Predicted"] = auto_arima.predict(n_period=len(df_test))
-        display_data_preview("Arima Predicted Data", df_test, file_name=f"{ticker}_predicted_data.csv", key=6)
-        # Create a Plotly figure for the chart
-        fig = go.Figure()
-
-        # Add a scatter plot for actual values
-        fig.add_trace(go.Scatter(x=df_test.index, y=df_test['Close'], mode='lines', name='Actual', line=dict(color='blue')))
-
-        # Add a scatter plot for predicted values
-        fig.add_trace(go.Scatter(x=df_test.index, y=df_test['Predicted'], mode='lines', name='Predicted', line=dict(color='orange')))
-
-        # Customize the layout
-        fig.update_layout(
-            title="Actual Vs Predicted",
-            xaxis_title="Date",
-            yaxis_title="Value",
-        )
-
-        # Show the Plotly chart
-        st.plotly_chart(fig)
