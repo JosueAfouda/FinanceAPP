@@ -14,7 +14,6 @@ from prophet.plot import add_changepoints_to_plot
 from prophet.plot import plot_plotly
 import plotly.express as px
 from prophet.serialize import model_to_json
-import pmdarima as pm
 
 from utils import *
 
