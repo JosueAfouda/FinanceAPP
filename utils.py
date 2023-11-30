@@ -1,8 +1,13 @@
-import yfinance as yf
 import streamlit as st
+import yfinance as yf
 import pandas as pd
+import numpy as np
+import scipy.optimize as sco
+import cvxpy as cp
 import requests
 from bs4 import BeautifulSoup
+import seaborn as sns 
+import matplotlib.pyplot as plt
 
 
 
@@ -103,3 +108,79 @@ def display_data_preview(title, dataframe, file_name="close_stock_prices.csv", k
         file_name=file_name,
         mime="text/csv",
     )
+
+
+# Function to calculate annualized average returns and covariance matrix
+def calculate_statistics(prices_df, n_days=252):
+    returns_df = prices_df.pct_change().dropna()
+    avg_returns = returns_df.mean() * n_days
+    cov_mat = returns_df.cov() * n_days
+    return avg_returns, cov_mat
+
+# Function to generate unique markers based on the number of assets
+def generate_markers(n_assets):
+    marker_pool = ["o", "X", "d", "*", "^", "s"]  # Add more markers if needed
+    return marker_pool[:n_assets]
+
+
+def print_portfolio_summary(perf, weights, assets, name):
+    """
+    Helper function for printing the performance summary of a portfolio.
+
+    Args:
+        perf (pd.Series): Series containing the perf metrics
+        weights (np.array): An array containing the portfolio weights
+        assets (list): list of the asset names
+        name (str): the name of the portfolio
+    """
+    name_portf = f"{name} portfolio Performance: ------------------"
+    st.write(name_portf)
+    for index, value in perf.items():
+        st.write(f"{index}: {100 * value:.2f}% ", end="", flush=True)
+    st.write("\nWeights")
+    for x, y in zip(assets, weights):
+        st.write(f"{x}: {100*y:.2f}% ", end="", flush=True)
+
+
+
+# functions for calculating portfolio returns and volatility
+def get_portf_rtn(w, avg_rtns):
+    return np.sum(avg_rtns * w)
+
+def get_portf_vol(w, avg_rtns, cov_mat):
+    return np.sqrt(np.dot(w.T, np.dot(cov_mat, w)))
+
+# Function to calculate efficient frontier using SciPy optimization
+def get_efficient_frontier_scipy(avg_returns, cov_mat, rtns_range):
+        efficient_portfolios_scipy = []
+
+        n_assets = len(avg_returns)
+        bounds = tuple((0, 1) for _ in range(n_assets))
+        initial_guess = n_assets * [1. / n_assets, ]
+
+        for ret in rtns_range:
+            constr = (
+                {"type": "eq",
+                 "fun": lambda x: get_portf_rtn(x, avg_returns) - ret},
+                {"type": "eq",
+                 "fun": lambda x: np.sum(x) - 1}
+            )
+            ef_portf_scipy = sco.minimize(get_portf_vol,
+                                          initial_guess,
+                                          args=(avg_returns, cov_mat),
+                                          method="SLSQP",
+                                          constraints=constr,
+                                          bounds=bounds)
+            efficient_portfolios_scipy.append(ef_portf_scipy)
+
+        return efficient_portfolios_scipy
+
+
+def neg_sharpe_ratio(w, avg_rtns, cov_mat, rf_rate):
+    portf_returns = np.sum(avg_rtns * w)
+    portf_volatility = np.sqrt(np.dot(w.T, np.dot(cov_mat, w)))
+    portf_sharpe_ratio = (
+        (portf_returns - rf_rate) / portf_volatility
+    )
+    return -portf_sharpe_ratio
+    

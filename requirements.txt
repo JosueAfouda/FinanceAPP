@@ -2,6 +2,7 @@ altair==5.1.2
 beautifulsoup4==4.12.2
 cufflinks==0.17.3
 cufflinks1==0.17.4
+cvxpy==1.4.1
 holidays==0.36
 joblib==1.3.2
 matplotlib==3.8.1
