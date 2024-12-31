@@ -272,3 +272,82 @@ if run_button:
             with open('serialized_model.json', 'w') as fout:
                 fout.write(model_to_json(new_prophet))
             st.success("Prophet Model downloaded successfully as 'serialized_prophet_model.json'")
+
+else:
+    st.write("""
+    ### User Manual: Forecasting Menu
+
+    ---
+
+    #### **Welcome to the Forecasting Menu**
+
+    This section of the application enables you to forecast the closing price of stocks using advanced machine learning techniques. Follow the instructions below to configure your parameters and generate predictions.
+
+    ---
+
+    ### **How to Use the Forecasting Menu**
+
+    #### **Step 1: Configure Stock Parameters**
+    1. **Select a Market Index**:
+    - Choose a market index (e.g., S&P500, CAC40, DAX, FTSE100, Nikkei225) from the dropdown menu in the sidebar.
+    - The tickers of the selected index will populate the dropdown menu for easy selection.
+
+    2. **Choose a Ticker**:
+    - Select a company ticker from the dropdown menu. The corresponding company name will be displayed.
+
+    3. **Set the Date Range**:
+    - Select the **start date** and **end date** for the data to be analyzed.
+    - Ensure the start date precedes the end date; otherwise, you will be prompted to adjust the dates.
+
+    ---
+
+    #### **Step 2: Define Forecasting Parameters**
+    1. **Prophet Parameters** (Expand the "Prophet Parameters" section in the sidebar):
+    - **Testing Data Percentage**: Specify the proportion of data to use for testing (default: 20%).
+    - **Changepoint Range**: Adjust the sensitivity of changepoint detection (default: 90%).
+    - **Country Holidays**: Select the country for adding holiday effects to the model.
+    - **Forecast Horizon (days)**: Set the number of days to forecast into the future (default: 365 days).
+    - **Download Model**: Check this box to download the trained Prophet model for further use.
+
+    2. **Modeling Process**:
+    - Select "Prophet" from the radio buttons to enable Prophet-based modeling.
+
+    ---
+
+    #### **Step 3: Run Forecasting**
+    1. Click the **"Run Forecasting"** button in the sidebar.
+    2. The application will:
+    - Retrieve the stock data for the selected ticker and date range.
+    - Display a preview of the data.
+    - Plot the historical closing prices.
+    - Generate forecasts using the configured Prophet parameters.
+
+    ---
+
+    ### **Output Visualizations and Data**
+    1. **Close Price Chart**:
+    - View an interactive chart of the historical closing prices.
+
+    2. **Forecasts and Actual Prices**:
+    - Examine side-by-side comparisons of actual vs. predicted prices.
+    - Review uncertainty intervals for the predictions.
+
+    3. **Changepoints Analysis**:
+    - Visualize changepoints identified during modeling to understand shifts in stock behavior.
+
+    4. **Future Forecasts**:
+    - Explore forecasted prices for the specified horizon beyond the historical data range.
+
+    5. **Download Model**:
+    - If selected, download the trained Prophet model as a JSON file for future use.
+
+    ---
+
+    ### **Note for First-Time Users**
+    - This manual will remain visible until you click "Run Forecasting."
+    - Carefully configure all parameters to ensure accurate forecasting results.
+
+    ---
+
+    Enjoy forecasting with this tool! If you have any questions or encounter issues, double-check your inputs or seek assistance. 🚀
+    """)
