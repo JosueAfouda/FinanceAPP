@@ -16,6 +16,55 @@ import matplotlib.pyplot as plt
 
 from utils import *
 
+st.set_page_config(page_title="Financial Market Trading web app", layout="wide")
+# Conteneur pour aligner les éléments horizontalement
+col1, col2, col3 = st.columns([1, 4, 1])
+
+# Colonne gauche : Image
+with col1:
+    st.image(
+        "linkedin_profil.png",  # Remplacez par le chemin de votre image
+        width=80,     # Ajustez la taille si nécessaire
+        use_column_width=False,
+    )
+
+# Colonne centrale : Titre
+with col2:
+    st.markdown(
+        """
+        <h1 style='text-align: center; margin-bottom: 0;'>Financial Market Trading web app</h1>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Colonne droite : Nom et lien LinkedIn
+with col3:
+    st.markdown(
+        """
+        <div style='text-align: right;'>
+            <a href="https://www.linkedin.com/in/josu%C3%A9-afouda/" target="_blank" style='text-decoration: none; color: #0077b5;'>
+                <strong>Josué AFOUDA</strong>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+import plotly.io as pio
+
+# Définir une configuration globale pour les graphiques
+pio.templates["custom_template"] = pio.templates["plotly_dark"]  # Ou "plotly" si vous n'utilisez pas de thème sombre
+pio.templates["custom_template"].layout.legend = dict(
+    orientation="h",  # Orientation horizontale
+    yanchor="bottom",  # Ancrer la légende en bas
+    y=1.02,  # Position verticale légèrement au-dessus du graphique
+    xanchor="center",  # Centrer horizontalement
+    x=0.5  # Position horizontale au milieu
+)
+
+# Appliquer le template globalement
+pio.templates.default = "custom_template"
+
 st.title("Asset Allocation")
 
 #st.subheader('Technical Analysis Page')
@@ -82,35 +131,42 @@ run_allocation_button = st.sidebar.button("Run Asset Allocation")
 if run_allocation_button:
     if len(assets) > 0:
         assets_data = load_data(assets, start_date, end_date)['Adj Close']
-        # Plot stock prices
-        fig = go.Figure()
+        # Créer les colonnes pour afficher les graphiques côte à côte
+        col1, col2 = st.columns(2)
 
+        # Graphique des prix ajustés
+        fig = go.Figure()
         for asset in assets:
             fig.add_trace(go.Scatter(x=assets_data.index, y=assets_data[asset], mode='lines', name=tickers_companies_dict[asset]))
 
-        fig.update_layout(title="Adjusted Close Prices of Selected Stocks",
-                        xaxis_title="Date",
-                        yaxis_title="Adjusted Close Price",
-                        legend=dict(title="Stocks"))
+        fig.update_layout(
+            title="Adjusted Close Prices of Selected Stocks",
+            xaxis_title="Date",
+            yaxis_title="Adjusted Close Price",
+            legend=dict(title="Stocks")
+        )
 
-        # Display the plot
-        st.plotly_chart(fig)
+        # Afficher le graphique des prix ajustés dans la première colonne
+        with col1:
+            st.plotly_chart(fig)
 
-        # Calculate and display daily returns
+        # Calculer et afficher les rendements quotidiens
         avg_returns, cov_mat = calculate_statistics(assets_data)
 
         fig_returns = go.Figure()
-
         for asset in assets:
             fig_returns.add_trace(go.Scatter(x=assets_data.index, y=assets_data[asset].pct_change(), mode='lines', name=tickers_companies_dict[asset]))
 
-        fig_returns.update_layout(title="Daily Returns of Selected Stocks",
-                                xaxis_title="Date",
-                                yaxis_title="Daily Returns",
-                                legend=dict(title="Company Names"))
+        fig_returns.update_layout(
+            title="Daily Returns of Selected Stocks",
+            xaxis_title="Date",
+            yaxis_title="Daily Returns",
+            legend=dict(title="Company Names")
+        )
 
-        # Display the plot
-        st.plotly_chart(fig_returns)
+        # Afficher le graphique des rendements quotidiens dans la deuxième colonne
+        with col2:
+            st.plotly_chart(fig_returns)
 
         # Simulate random portfolio weights
         np.random.seed(42)
@@ -218,24 +274,71 @@ if run_allocation_button:
             # Bar chart showing the calculated weight of each asset in the Maximum Sharpe Ratio portfolio
             # Maximum Sharpe Ratio Portfolio
             weight_chart_data = pd.DataFrame({"Assets": assets, "Weights": weights[max_sharpe_ind]}).sort_values(by="Weights", ascending=False)
-            weight_chart = px.bar(weight_chart_data, x="Assets", y="Weights", labels={"Weights": "Weight"}, 
-                                title="Asset Weights in Maximum Sharpe Ratio Portfolio", color="Assets")
-            st.plotly_chart(weight_chart)
-            print_portfolio_summary(perf=max_sharpe_portf, weights=weights[max_sharpe_ind], assets=assets, name="Maximum Sharpe Ratio")
+            weight_chart = px.bar(
+                weight_chart_data,
+                x="Assets",
+                y="Weights",
+                labels={"Weights": "Weight"},
+                title="Asset Weights in Maximum Sharpe Ratio Portfolio",
+                color="Assets"
+            )
+
+            # Créer les colonnes pour afficher le graphique et le résumé côte à côte
+            col1, col2 = st.columns(2)
+
+            # Afficher le graphique des poids des actifs dans la première colonne
+            with col1:
+                st.plotly_chart(weight_chart)
+
+            # Afficher le résumé du portefeuille dans la deuxième colonne
+            with col2:
+                print_portfolio_summary(perf=max_sharpe_portf, weights=weights[max_sharpe_ind], assets=assets, name="Maximum Sharpe Ratio")
+
 
             # Minimum Volatility Portfolio
             weight_chart_data2 = pd.DataFrame({"Assets": assets, "Weights": weights[min_vol_ind]}).sort_values(by="Weights", ascending=False)
-            weight_chart2 = px.bar(weight_chart_data2, x="Assets", y="Weights", labels={"Weights": "Weight"}, 
-                                title="Asset Weights in Minimum Volatility Portfolio", color="Assets")
-            st.plotly_chart(weight_chart2)
-            print_portfolio_summary(min_vol_portf, weights[min_vol_ind], assets, name="Minimum Volatility")
+            weight_chart2 = px.bar(
+                weight_chart_data2,
+                x="Assets",
+                y="Weights",
+                labels={"Weights": "Weight"},
+                title="Asset Weights in Minimum Volatility Portfolio",
+                color="Assets"
+            )
+
+            # Créer deux colonnes pour afficher le graphique et le résumé côte à côte
+            col1, col2 = st.columns(2)
+
+            # Afficher le graphique dans la première colonne
+            with col1:
+                st.plotly_chart(weight_chart2)
+
+            # Afficher le résumé du portefeuille dans la deuxième colonne
+            with col2:
+                print_portfolio_summary(min_vol_portf, weights[min_vol_ind], assets, name="Minimum Volatility")
+
 
             # Maximum Return Portfolio
             weight_chart_data3 = pd.DataFrame({"Assets": assets, "Weights": weights[max_return_ind]}).sort_values(by="Weights", ascending=False)
-            weight_chart3 = px.bar(weight_chart_data3, x="Assets", y="Weights", labels={"Weights": "Weight"}, 
-                                title="Asset Weights in Maximum Return Portfolio", color="Assets")
-            st.plotly_chart(weight_chart3)
-            print_portfolio_summary(perf=max_return_portf, weights=weights[max_return_ind], assets=assets, name="Maximum Return")
+            weight_chart3 = px.bar(
+                weight_chart_data3,
+                x="Assets",
+                y="Weights",
+                labels={"Weights": "Weight"},
+                title="Asset Weights in Maximum Return Portfolio",
+                color="Assets"
+            )
+
+            # Créer deux colonnes pour afficher le graphique et le résumé côte à côte
+            col1, col2 = st.columns(2)
+
+            # Afficher le graphique dans la première colonne
+            with col1:
+                st.plotly_chart(weight_chart3)
+
+            # Afficher le résumé du portefeuille dans la deuxième colonne
+            with col2:
+                print_portfolio_summary(perf=max_return_portf, weights=weights[max_return_ind], assets=assets, name="Maximum Return")
 
 
         elif allocation_method == "Scipy optimization":
@@ -280,8 +383,11 @@ if run_allocation_button:
             weight_chart_data4 = pd.DataFrame({"Assets": assets, "Weights": efficient_portfolios_scipy[min_vol_ind_scipy]["x"]}).sort_values(by="Weights", ascending=False)
             weight_chart4 = px.bar(weight_chart_data4, x="Assets", y="Weights", labels={"Weights": "Weight"}, 
                                 title="Asset Weights in Minimum Volatility Portfolio", color="Assets")
-            st.plotly_chart(weight_chart4)
-            print_portfolio_summary(min_vol_portf_scipy, 
+            col1, col2 = st.columns(2)
+            with col1:
+                st.plotly_chart(weight_chart4)
+            with col2:
+                print_portfolio_summary(min_vol_portf_scipy, 
                             efficient_portfolios_scipy[min_vol_ind_scipy]["x"], 
                             assets, 
                             name="Minimum Volatility")
@@ -315,11 +421,12 @@ if run_allocation_button:
             weight_chart_data5 = pd.DataFrame({"Assets": assets, "Weights": max_sharpe_portf_w_scipy}).sort_values(by="Weights", ascending=False)
             weight_chart5 = px.bar(weight_chart_data5, x="Assets", y="Weights", labels={"Weights": "Weight"}, 
                                 title="Asset Weights in Maximum Sharpe Ratio Portfolio", color="Assets")
-            st.plotly_chart(weight_chart5)
-            print_portfolio_summary(max_sharpe_portf_scipy, max_sharpe_portf_w_scipy, assets, name="Maximum Sharpe Ratio")
+            with col1:
+                st.plotly_chart(weight_chart5)
+            with col2:
+                print_portfolio_summary(max_sharpe_portf_scipy, max_sharpe_portf_w_scipy, assets, name="Maximum Sharpe Ratio")
 
     
-
         elif allocation_method == "CVXPY optimization":
             avg_returns = avg_returns.values
             cov_mat = cov_mat.values
@@ -378,7 +485,7 @@ if run_allocation_button:
 
 else:
     st.write("""
-    # Asset Allocation Application - User Manual
+    ## Asset Allocation Application - User Manual
 
     Welcome to the Asset Allocation Application! This app allows you to analyze and optimize your investment portfolio using various techniques. Please follow the steps below to make the most of this tool.
 

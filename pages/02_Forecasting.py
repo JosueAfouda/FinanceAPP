@@ -17,6 +17,39 @@ from prophet.serialize import model_to_json
 
 from utils import *
 
+st.set_page_config(page_title="Financial Market Trading web app", layout="wide")
+# Conteneur pour aligner les éléments horizontalement
+col1, col2, col3 = st.columns([1, 4, 1])
+
+# Colonne gauche : Image
+with col1:
+    st.image(
+        "linkedin_profil.png",  # Remplacez par le chemin de votre image
+        width=80,     # Ajustez la taille si nécessaire
+        use_column_width=False,
+    )
+
+# Colonne centrale : Titre
+with col2:
+    st.markdown(
+        """
+        <h1 style='text-align: center; margin-bottom: 0;'>Financial Market Trading web app</h1>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Colonne droite : Nom et lien LinkedIn
+with col3:
+    st.markdown(
+        """
+        <div style='text-align: right;'>
+            <a href="https://www.linkedin.com/in/josu%C3%A9-afouda/" target="_blank" style='text-decoration: none; color: #0077b5;'>
+                <strong>Josué AFOUDA</strong>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 st.title("Forecasting Close Price")
 
 #st.subheader('Technical Analysis Page')
