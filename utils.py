@@ -5,6 +5,7 @@ import numpy as np
 import scipy.optimize as sco
 import cvxpy as cp
 import requests
+import io
 from bs4 import BeautifulSoup
 import seaborn as sns 
 import matplotlib.pyplot as plt
@@ -12,25 +13,58 @@ import matplotlib.pyplot as plt
 
 
 # data functions
+DEFAULT_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    )
+}
+
+
+def _read_html_tables(url):
+    response = requests.get(url, headers=DEFAULT_HEADERS, timeout=10)
+    response.raise_for_status()
+    return pd.read_html(io.StringIO(response.text))
+
+
 @st.cache_resource
 def get_sp500_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
-    df = df[0]
-    tickers = df["Symbol"].to_list()
-    tickers_companies_dict = dict(
-        zip(df["Symbol"], df["Security"])
-    )
-    return tickers, tickers_companies_dict
+    datahub_url = "https://datahub.io/core/s-and-p-500-companies/r/constituents.csv"
+    wiki_url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    try:
+        response = requests.get(datahub_url, headers=DEFAULT_HEADERS, timeout=10)
+        response.raise_for_status()
+        df = pd.read_csv(io.StringIO(response.text))
+        tickers = df["Symbol"].to_list()
+        tickers_companies_dict = dict(zip(df["Symbol"], df["Name"]))
+        return tickers, tickers_companies_dict
+    except Exception as exc:
+        st.warning(
+            f"Unable to fetch S&P 500 data from DataHub, falling back to Wikipedia. ({exc})"
+        )
+        try:
+            df = _read_html_tables(wiki_url)[0]
+            tickers = df["Symbol"].to_list()
+            tickers_companies_dict = dict(zip(df["Symbol"], df["Security"]))
+            return tickers, tickers_companies_dict
+        except Exception as fallback_exc:
+            st.error(
+                "Unable to load S&P 500 components right now. "
+                f"Please try again later. ({fallback_exc})"
+            )
+            return [], {}
 
 @st.cache_resource
 def get_dax_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/DAX")
-    df = df[4]
-    tickers = df["Ticker"].to_list()
-    tickers_companies_dict = dict(
-        zip(df["Ticker"], df["Company"])
-    )
-    return tickers, tickers_companies_dict
+    url = "https://en.wikipedia.org/wiki/DAX"
+    try:
+        df = _read_html_tables(url)[4]
+        tickers = df["Ticker"].to_list()
+        tickers_companies_dict = dict(zip(df["Ticker"], df["Company"]))
+        return tickers, tickers_companies_dict
+    except Exception as exc:
+        st.error(f"Unable to load DAX components right now. ({exc})")
+        return [], {}
 
 @st.cache_resource
 def get_nikkei_components():
@@ -38,7 +72,7 @@ def get_nikkei_components():
     url = "https://topforeignstocks.com/indices/the-components-of-the-nikkei-225-index/"
 
     # Send an HTTP GET request to the URL
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS, timeout=10)
 
     # Check if the request was successful
     if response.status_code == 200:
@@ -52,7 +86,10 @@ def get_nikkei_components():
         df = pd.read_html(str(table))[0]
         df['Code'] = df['Code'].astype(str) + '.T'
     else:
-        print("Failed to retrieve the web page. Status code:", response.status_code)
+        st.error(
+            f"Failed to retrieve the Nikkei 225 components. Status code: {response.status_code}"
+        )
+        return [], {}
     tickers = df["Code"].to_list()
     tickers_companies_dict = dict(
         zip(df["Code"], df['Company Name'])
@@ -61,24 +98,28 @@ def get_nikkei_components():
 
 @st.cache_resource
 def get_ftse_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/FTSE_100_Index")
-    df = df[4]
-    tickers = df["Ticker"].to_list()
-    tickers_companies_dict = dict(
-        zip(df["Ticker"], df["Company"])
-    )
-    return tickers, tickers_companies_dict
+    url = "https://en.wikipedia.org/wiki/FTSE_100_Index"
+    try:
+        df = _read_html_tables(url)[4]
+        tickers = df["Ticker"].to_list()
+        tickers_companies_dict = dict(zip(df["Ticker"], df["Company"]))
+        return tickers, tickers_companies_dict
+    except Exception as exc:
+        st.error(f"Unable to load FTSE 100 components right now. ({exc})")
+        return [], {}
 
 
 @st.cache_resource
 def get_cac40_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/CAC_40")
-    df = df[4]
-    tickers = df["Ticker"].to_list()
-    tickers_companies_dict = dict(
-        zip(df["Ticker"], df["Company"])
-    )
-    return tickers, tickers_companies_dict
+    url = "https://en.wikipedia.org/wiki/CAC_40"
+    try:
+        df = _read_html_tables(url)[4]
+        tickers = df["Ticker"].to_list()
+        tickers_companies_dict = dict(zip(df["Ticker"], df["Company"]))
+        return tickers, tickers_companies_dict
+    except Exception as exc:
+        st.error(f"Unable to load CAC 40 components right now. ({exc})")
+        return [], {}
 
 
 @st.cache_data
