@@ -26,27 +26,57 @@ def _read_html_tables(url):
     response.raise_for_status()
     return pd.read_html(io.StringIO(response.text))
 
+def _normalize_columns(df):
+    df = df.copy()
+    df.columns = [str(col).strip() for col in df.columns]
+    return df
+
+def _pick_column(df, candidates):
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+    return None
+
+def _extract_index_components(df, symbol_candidates, name_candidates):
+    df = _normalize_columns(df)
+    symbol_col = _pick_column(df, symbol_candidates)
+    name_col = _pick_column(df, name_candidates)
+    if not symbol_col or not name_col:
+        raise ValueError(
+            "Missing expected columns. "
+            f"Found columns: {', '.join(df.columns)}"
+        )
+    tickers = df[symbol_col].dropna().astype(str).to_list()
+    tickers_companies_dict = dict(zip(df[symbol_col], df[name_col]))
+    return tickers, tickers_companies_dict
+
+def _find_table_with_symbol(tables, symbol_candidates):
+    for table in tables:
+        table = _normalize_columns(table)
+        if _pick_column(table, symbol_candidates):
+            return table
+    raise ValueError("No table found with symbol column.")
+
 
 @st.cache_resource
 def get_sp500_components():
     datahub_url = "https://datahub.io/core/s-and-p-500-companies/r/constituents.csv"
     wiki_url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    symbol_candidates = ["Symbol", "Ticker", "Ticker symbol"]
+    name_candidates = ["Name", "Security", "Company", "Company Name"]
     try:
         response = requests.get(datahub_url, headers=DEFAULT_HEADERS, timeout=10)
         response.raise_for_status()
         df = pd.read_csv(io.StringIO(response.text))
-        tickers = df["Symbol"].to_list()
-        tickers_companies_dict = dict(zip(df["Symbol"], df["Name"]))
-        return tickers, tickers_companies_dict
+        return _extract_index_components(df, symbol_candidates, name_candidates)
     except Exception as exc:
         st.warning(
             f"Unable to fetch S&P 500 data from DataHub, falling back to Wikipedia. ({exc})"
         )
         try:
-            df = _read_html_tables(wiki_url)[0]
-            tickers = df["Symbol"].to_list()
-            tickers_companies_dict = dict(zip(df["Symbol"], df["Security"]))
-            return tickers, tickers_companies_dict
+            tables = _read_html_tables(wiki_url)
+            df = _find_table_with_symbol(tables, symbol_candidates)
+            return _extract_index_components(df, symbol_candidates, name_candidates)
         except Exception as fallback_exc:
             st.error(
                 "Unable to load S&P 500 components right now. "
