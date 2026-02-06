@@ -1,45 +1,92 @@
 # FinanceAPP
 
 ## Overview
-FinanceAPP is a comprehensive financial market trading web application developed using Streamlit. It provides users with tools for technical analysis, asset allocation, forecasting, and backtesting of financial data. The application is designed to help users make informed investment decisions by analyzing stock data from major global indices such as S&P500, CAC40, FTSE100, DAX, and NIKKEI 225.
+FinanceAPP is a comprehensive financial market trading web application developed using Streamlit. It empowers users to make informed investment decisions by providing advanced tools for:
+*   **Technical Analysis**: Interactive charting with indicators.
+*   **Forecasting**: Machine learning-based stock price prediction.
+*   **Asset Allocation**: Portfolio optimization using modern portfolio theory.
 
-## Features
-- **Technical Analysis**: Analyze stock performance using indicators like SMA, Bollinger Bands, and RSI.
-- **Asset Allocation**: Optimize investment portfolios using techniques like Monte Carlo simulations and CVXPY optimization.
-- **Forecasting**: Predict future stock prices using the Prophet model.
-- **Backtesting**: (Coming Soon) Evaluate trading strategies against historical data.
+The application supports major global indices: **S&P500** (USA), **CAC40** (France), **FTSE100** (UK), **DAX** (Germany), and **NIKKEI 225** (Japan).
+
+## Key Features
+
+### 1. Technical Analysis
+*   **Interactive Charts**: Powered by `plotly` and `cufflinks`.
+*   **Indicators**: 
+    *   Simple Moving Average (SMA)
+    *   Bollinger Bands
+    *   Relative Strength Index (RSI)
+    *   Volume Analysis
+
+### 2. Forecasting (Prophet)
+*   **Model**: Facebook's Prophet library for time-series forecasting.
+*   **Smart Automation**: Automatically selects country holidays based on the chosen market index.
+*   **Performance Metrics**: Evaluates models using **MAE**, **RMSE**, and **MAPE** on a test set.
+*   **Visualization**: Interactive plots of historical data, future predictions, uncertainty intervals, and trend changepoints.
+*   **Downloadable Models**: Export trained models as JSON files for external use.
+
+### 3. Asset Allocation
+*   **Optimization Techniques**:
+    *   **Monte Carlo Simulations**: Randomly generates thousands of portfolios to visualize the risk-return trade-off.
+    *   **SciPy Optimization**: Mathematically finds the Efficient Frontier and optimal portfolios (Max Sharpe, Min Volatility).
+    *   **CVXPY Optimization**: Convex optimization for robust and efficient portfolio construction.
+    *   **Hierarchical Risk Parity (HRP)**: (Coming Soon)
 
 ## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/FinanceAPP.git
-   ```
-2. Navigate to the project directory:
-   ```bash
-   cd FinanceAPP
-   ```
-3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+### Prerequisites
+*   **Python 3.12** (Strictly required for compatibility with specific financial libraries).
+*   **Pip** package manager.
+
+### Setup Steps
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/yourusername/FinanceAPP.git
+    cd FinanceAPP
+    ```
+
+2.  **Create a Virtual Environment (Recommended):**
+    ```bash
+    python3.12 -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    ```
+
+3.  **Install Dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Usage
-Run the application using Streamlit:
-```bash
-streamlit run Home.py
-```
+
+1.  **Run the Streamlit Application:**
+    ```bash
+    streamlit run Home.py
+    ```
+
+2.  **Navigate the App:**
+    *   **Home**: Landing page with general information and a contact form.
+    *   **Technical Analysis**: Select an index and ticker to view charts and indicators.
+    *   **Forecasting**: Train a Prophet model to predict future prices and download the results.
+    *   **Asset Allocation**: Select multiple assets to build and optimize a portfolio.
+
+## Technical Details
+
+*   **Data Sources**: Real-time stock data via `yfinance`. Index components are scraped dynamically from Wikipedia using `requests` and `pandas` with custom headers for robustness.
+*   **Caching**: Extensive use of `@st.cache_resource` and `@st.cache_data` ensures fast performance by caching data and trained models.
+*   **Deployment**: Ready for deployment on platforms like Render (includes `.python-version` and `lxml` support).
 
 ## Project Structure
-- **Home.py**: Main entry point for the application, handles user interface setup.
-- **utils.py**: Contains utility functions for data retrieval and processing.
-- **pages/**: Contains individual modules for different functionalities:
-  - `01_TechnicalAnalysis.py`: Module for technical analysis.
-  - `02_Forecasting.py`: Module for forecasting stock prices.
-  - `03_AssetAllocation.py`: Module for asset allocation strategies.
-  - `04_Backtesting.py`: Placeholder for future backtesting functionality.
+*   `Home.py`: Main entry point.
+*   `utils.py`: Core utility functions for data fetching (robust scraping), processing, and financial calculations.
+*   `pages/`:
+    *   `01_TechnicalAnalysis.py`: Interactive charting module.
+    *   `02_Forecasting.py`: Advanced forecasting module with caching and metrics.
+    *   `03_AssetAllocation.py`: Portfolio optimization module.
+*   `requirements.txt`: Pinned dependencies for reproducible builds.
 
 ## Author
-Developed by Josué AFOUDA. Connect with me on [LinkedIn](https://www.linkedin.com/in/josu%C3%A9-afouda/).
+Developed by **Josué AFOUDA**.
+Connect with me on [YouTube](https://www.youtube.com/@RealProDatascience).
 
 ## License
 This project is licensed under the MIT License.
