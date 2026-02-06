@@ -91,7 +91,7 @@ def get_hrp_weights(prices_df):
 def get_sp500_components():
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     response = requests.get(url, headers=HEADERS)
-    dfs = pd.read_html(response.text)
+    dfs = pd.read_html(response.text, flavor='lxml')
     
     # Search for the table with 'Symbol' and 'Security'
     df = None
@@ -113,7 +113,7 @@ def get_sp500_components():
 def get_dax_components():
     url = "https://en.wikipedia.org/wiki/DAX"
     response = requests.get(url, headers=HEADERS)
-    dfs = pd.read_html(response.text)
+    dfs = pd.read_html(response.text, flavor='lxml')
     
     # Search for the table with 'Ticker' and 'Company'
     df = None
@@ -148,7 +148,7 @@ def get_nikkei_components():
         table = soup.find('table', {'class': 'tablepress'})
 
         # Use Pandas to read the table and store it as a DataFrame
-        df = pd.read_html(str(table))[0]
+        df = pd.read_html(str(table), flavor='lxml')[0]
         # Only append .T if not already present
         df['Code'] = df['Code'].astype(str).apply(lambda x: x if x.endswith('.T') else x + '.T')
     else:
@@ -163,7 +163,7 @@ def get_nikkei_components():
 def get_ftse_components():
     url = "https://en.wikipedia.org/wiki/FTSE_100_Index"
     response = requests.get(url, headers=HEADERS)
-    dfs = pd.read_html(response.text)
+    dfs = pd.read_html(response.text, flavor='lxml')
     
     # Search for the table with 'Ticker' or 'EPIC'
     df = None
@@ -200,7 +200,7 @@ def get_ftse_components():
 def get_cac40_components():
     url = "https://en.wikipedia.org/wiki/CAC_40"
     response = requests.get(url, headers=HEADERS)
-    dfs = pd.read_html(response.text)
+    dfs = pd.read_html(response.text, flavor='lxml')
     
     # Search for the table with 'Ticker' and 'Company'
     df = None

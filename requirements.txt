@@ -3,6 +3,7 @@ beautifulsoup4==4.14.3
 cufflinks==0.17.3
 cvxpy==1.6.0
 holidays==0.90
+html5lib==1.1
 joblib==1.5.3
 lxml==6.0.2
 matplotlib==3.9.2
