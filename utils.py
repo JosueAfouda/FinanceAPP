@@ -9,12 +9,18 @@ from bs4 import BeautifulSoup
 import seaborn as sns 
 import matplotlib.pyplot as plt
 
+# Headers for requests to avoid bot detection
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 
 
 # data functions
 @st.cache_resource
 def get_sp500_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    response = requests.get(url, headers=HEADERS)
+    df = pd.read_html(response.text)
     df = df[0]
     tickers = df["Symbol"].to_list()
     tickers_companies_dict = dict(
@@ -24,7 +30,9 @@ def get_sp500_components():
 
 @st.cache_resource
 def get_dax_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/DAX")
+    url = "https://en.wikipedia.org/wiki/DAX"
+    response = requests.get(url, headers=HEADERS)
+    df = pd.read_html(response.text)
     df = df[4]
     tickers = df["Ticker"].to_list()
     tickers_companies_dict = dict(
@@ -38,7 +46,7 @@ def get_nikkei_components():
     url = "https://topforeignstocks.com/indices/the-components-of-the-nikkei-225-index/"
 
     # Send an HTTP GET request to the URL
-    response = requests.get(url)
+    response = requests.get(url, headers=HEADERS)
 
     # Check if the request was successful
     if response.status_code == 200:
@@ -61,7 +69,9 @@ def get_nikkei_components():
 
 @st.cache_resource
 def get_ftse_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/FTSE_100_Index")
+    url = "https://en.wikipedia.org/wiki/FTSE_100_Index"
+    response = requests.get(url, headers=HEADERS)
+    df = pd.read_html(response.text)
     df = df[4]
     tickers = df["Ticker"].to_list()
     tickers_companies_dict = dict(
@@ -72,7 +82,9 @@ def get_ftse_components():
 
 @st.cache_resource
 def get_cac40_components():
-    df = pd.read_html("https://en.wikipedia.org/wiki/CAC_40")
+    url = "https://en.wikipedia.org/wiki/CAC_40"
+    response = requests.get(url, headers=HEADERS)
+    df = pd.read_html(response.text)
     df = df[4]
     tickers = df["Ticker"].to_list()
     tickers_companies_dict = dict(
@@ -83,7 +95,10 @@ def get_cac40_components():
 
 @st.cache_data
 def load_data(symbol, start, end):
-    return yf.download(symbol, start, end)
+    df = yf.download(symbol, start, end)
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    return df
 
 @st.cache_resource
 def convert_df_to_csv(df):
