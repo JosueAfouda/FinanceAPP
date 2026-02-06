@@ -116,10 +116,16 @@ if start_date > end_date:
     st.sidebar.error("The end date must fall after the start date")
 
 ## inputs for Asset Allocation analysis
-st.sidebar.header("Asset Allocation Method")
+st.sidebar.header("Asset Allocation Parameters")
+
+rf_rate = st.sidebar.number_input("Risk-Free Rate (%)", value=2.0, step=0.1) / 100
 
 allocation_method = st.sidebar.radio("Select Asset Allocation Technique", 
-                                     ["Monte Carlo simulations", "Scipy optimization", "CVXPY optimization", "Hierarchical Risk Parity"])
+                                     ["CVXPY optimization", "Scipy optimization", "Monte Carlo simulations", "Hierarchical Risk Parity"],
+                                     index=0)
+
+st.sidebar.markdown("---")
+st.sidebar.info("**Disclaimer:** Past performance is not indicative of future results. Portfolio optimization is based on historical data and does not guarantee future returns.")
 
 #if len(assets) > 0:
     #assets_data = load_data(assets, start_date, end_date)['Adj Close']
@@ -131,6 +137,14 @@ run_allocation_button = st.sidebar.button("Run Asset Allocation")
 if run_allocation_button:
     if len(assets) > 0:
         assets_data = load_data(assets, start_date, end_date)['Adj Close']
+        
+        # Warning for data loss due to differing asset histories
+        initial_len = len(assets_data)
+        returns_df = assets_data.pct_change().dropna()
+        final_len = len(returns_df)
+        if final_len < initial_len * 0.5:
+            st.warning(f"Significant data loss detected: {initial_len - final_len} days removed due to differing asset histories. The analysis is based on {final_len} common trading days.")
+
         # Créer les colonnes pour afficher les graphiques côte à côte
         col1, col2 = st.columns(2)
 
@@ -155,7 +169,7 @@ if run_allocation_button:
 
         fig_returns = go.Figure()
         for asset in assets:
-            fig_returns.add_trace(go.Scatter(x=assets_data.index, y=assets_data[asset].pct_change(), mode='lines', name=tickers_companies_dict[asset]))
+            fig_returns.add_trace(go.Scatter(x=assets_data.index, y=returns_df[asset], mode='lines', name=tickers_companies_dict[asset]))
 
         fig_returns.update_layout(
             title="Daily Returns of Selected Stocks",
@@ -170,7 +184,7 @@ if run_allocation_button:
 
         # Simulate random portfolio weights
         np.random.seed(42)
-        N_PORTFOLIOS = 10 ** 5
+        N_PORTFOLIOS = 20000
         n_assets = len(assets)
         weights = np.random.random(size=(N_PORTFOLIOS, n_assets))
         weights /= np.sum(weights, axis=1)[:, np.newaxis]
@@ -182,7 +196,7 @@ if run_allocation_button:
             vol = np.sqrt(np.dot(weights[i].T, np.dot(cov_mat, weights[i])))
             portf_vol.append(vol)
         portf_vol = np.array(portf_vol)
-        portf_sharpe_ratio = portf_rtns / portf_vol
+        portf_sharpe_ratio = (portf_rtns - rf_rate) / portf_vol
 
         # Create a DataFrame containing all the data
         portf_results_df = pd.DataFrame(
@@ -196,7 +210,7 @@ if run_allocation_button:
 
         if allocation_method == "Monte Carlo simulations":
             
-            # Locate the points creating the Efficient Frontier
+            # Locate the points creating the Simulated Boundary
             N_POINTS = 100
             ef_rtn_list = []
             ef_vol_list = []
@@ -207,16 +221,16 @@ if run_allocation_button:
                 N_POINTS
             )
             possible_ef_rtns = np.round(possible_ef_rtns, 2)    
-            portf_rtns = np.round(portf_rtns, 2)
+            portf_rtns_rounded = np.round(portf_rtns, 2)
 
             for rtn in possible_ef_rtns:
-                if rtn in portf_rtns:
+                if rtn in portf_rtns_rounded:
                     ef_rtn_list.append(rtn)
-                    matched_ind = np.where(portf_rtns == rtn)
+                    matched_ind = np.where(portf_rtns_rounded == rtn)
                     ef_vol_list.append(np.min(portf_vol[matched_ind]))
 
-            # Create the Efficient Frontier plot using Matplotlib
-            st.subheader("Efficient Frontier")
+            # Create the Simulated Boundary plot using Matplotlib
+            st.subheader("Simulated Boundary (Monte Carlo)")
             fig_ef, ax_ef = plt.subplots(figsize=(10, 6))
 
             # Scatter plot for individual portfolios
@@ -229,10 +243,10 @@ if run_allocation_button:
                 marker="o",
                 alpha=0.8,
             )
-            ax_ef.set(xlabel="Volatility", ylabel="Expected Returns", title="Efficient Frontier")
+            ax_ef.set(xlabel="Volatility", ylabel="Expected Returns", title="Simulated Boundary - Monte Carlo")
 
-            # Line plot for Efficient Frontier
-            ax_ef.plot(ef_vol_list, ef_rtn_list, "b--")
+            # Line plot for Simulated Boundary
+            ax_ef.plot(ef_vol_list, ef_rtn_list, "b--", label="Simulated Frontier")
 
             # Markers for individual assets
             MARKERS = generate_markers(n_assets)
@@ -248,7 +262,7 @@ if run_allocation_button:
 
             # Add colorbar
             cbar = fig_ef.colorbar(scatter)
-            cbar.set_label("Sharpe Ratio")
+            cbar.set_label(f"Sharpe Ratio (RF={rf_rate*100:.1f}%)")
 
             # Add legend
             ax_ef.legend()
@@ -257,7 +271,7 @@ if run_allocation_button:
             sns.despine()
             plt.tight_layout()
 
-            # Display the Efficient Frontier chart
+            # Display the Simulated Boundary chart
             st.pyplot(fig_ef)
 
             # Display the portfolio performance summary
@@ -343,7 +357,8 @@ if run_allocation_button:
 
         elif allocation_method == "Scipy optimization":
 
-            rtns_range = np.linspace(-0.1, 0.55, 200)
+            # Dynamic return range based on asset performance
+            rtns_range = np.linspace(avg_returns.min(), avg_returns.max(), 100)
             
             # Calculate the Efficient Frontier using SciPy optimization
             efficient_portfolios_scipy = get_efficient_frontier_scipy(avg_returns, cov_mat, rtns_range)
@@ -361,7 +376,7 @@ if run_allocation_button:
                 ax_scipy.plot(vols_range_scipy, rtns_range, "b--", linewidth=3)
                 ax_scipy.set(xlabel="Volatility",
                             ylabel="Expected Returns",
-                            title="Efficient Frontier - SciPy Optimization")
+                            title=f"Efficient Frontier - SciPy Optimization (RF={rf_rate*100:.1f}%)")
 
                 sns.despine()
                 plt.tight_layout()
@@ -377,7 +392,7 @@ if run_allocation_button:
             min_vol_portf_scipy = {
                 "Return": min_vol_portf_rtn_scipy,
                 "Volatility": min_vol_portf_vol_scipy,
-                "Sharpe Ratio": (min_vol_portf_rtn_scipy / min_vol_portf_vol_scipy)
+                "Sharpe Ratio": ((min_vol_portf_rtn_scipy - rf_rate) / min_vol_portf_vol_scipy)
             }
             #st.write(min_vol_portf_scipy)
             weight_chart_data4 = pd.DataFrame({"Assets": assets, "Weights": efficient_portfolios_scipy[min_vol_ind_scipy]["x"]}).sort_values(by="Weights", ascending=False)
@@ -395,9 +410,8 @@ if run_allocation_button:
 
             # Maximum Sharpe Ratio Portfolio
             n_assets = len(avg_returns)
-            RF_RATE = 0
 
-            args = (avg_returns, cov_mat, RF_RATE)
+            args = (avg_returns, cov_mat, rf_rate)
             constraints = ({"type": "eq", "fun": lambda x: np.sum(x) - 1})
             bounds = tuple((0,1) for asset in range(n_assets))
             initial_guess = n_assets * [1. / n_assets]
@@ -428,47 +442,47 @@ if run_allocation_button:
 
     
         elif allocation_method == "CVXPY optimization":
-            avg_returns = avg_returns.values
-            cov_mat = cov_mat.values
+            avg_returns_val = avg_returns.values
+            cov_mat_val = cov_mat.values
 
             # Set up the optimization problem
-            weights = cp.Variable(n_assets)
+            weights_var = cp.Variable(n_assets)
             gamma_par = cp.Parameter(nonneg=True)
-            portf_rtn_cvx = avg_returns @ weights 
-            portf_vol_cvx = cp.quad_form(weights, cov_mat)
+            portf_rtn_cvx = avg_returns_val @ weights_var 
+            portf_var_cvx = cp.quad_form(weights_var, cov_mat_val) # This is Variance
             objective_function = cp.Maximize(
-                portf_rtn_cvx - gamma_par * portf_vol_cvx
+                portf_rtn_cvx - gamma_par * portf_var_cvx
             )
             problem = cp.Problem(
                 objective_function, 
-                [cp.sum(weights) == 1, weights >= 0]
+                [cp.sum(weights_var) == 1, weights_var >= 0]
             )
 
             # Calculate the Efficient Frontier
-            N_POINTS = 25
+            N_POINTS_CVX = 25
             portf_rtn_cvx_ef = []
             portf_vol_cvx_ef = []
             weights_ef = []
-            gamma_range = np.logspace(-3, 3, num=N_POINTS)
+            gamma_range = np.logspace(-3, 3, num=N_POINTS_CVX)
 
             for gamma in gamma_range:
                 gamma_par.value = gamma
                 problem.solve()
-                portf_vol_cvx_ef.append(cp.sqrt(portf_vol_cvx).value)
+                portf_vol_cvx_ef.append(cp.sqrt(portf_var_cvx).value)
                 portf_rtn_cvx_ef.append(portf_rtn_cvx.value)
-                weights_ef.append(weights.value)
+                weights_ef.append(weights_var.value)
 
             # Plot the Efficient Frontier, together with the individual assets
             fig_cvx, ax_cvx = plt.subplots()
             MARKERS = generate_markers(n_assets)
-            ax_cvx.plot(portf_vol_cvx_ef, portf_rtn_cvx_ef, "g-")
+            ax_cvx.plot(portf_vol_cvx_ef, portf_rtn_cvx_ef, "g-", label="Efficient Frontier (CVXPY)")
             for asset_index in range(n_assets):
-                plt.scatter(x=np.sqrt(cov_mat[asset_index, asset_index]), 
-                            y=avg_returns[asset_index], 
+                plt.scatter(x=np.sqrt(cov_mat_val[asset_index, asset_index]), 
+                            y=avg_returns_val[asset_index], 
                             marker=MARKERS[asset_index], 
                             label=assets[asset_index],
                             s=150)
-            ax_cvx.set(title="Efficient Frontier",
+            ax_cvx.set(title="Efficient Frontier - CVXPY Optimization",
                 xlabel="Volatility", 
                 ylabel="Expected Returns")
             ax_cvx.legend()
@@ -479,7 +493,45 @@ if run_allocation_button:
 
 
         elif allocation_method == "Hierarchical Risk Parity":
-            st.write("----------------------------------------will be available soon-------------------------------------------")
+            # Calculate HRP weights
+            hrp_weights = get_hrp_weights(assets_data)
+            
+            # Organize data for display (ensure alignment with asset list if needed, but HRP returns sorted Series)
+            # Reindex to match the user's selected 'assets' list order for consistency in visualization
+            hrp_weights = hrp_weights.reindex(assets) 
+            
+            # Calculate metrics
+            hrp_ret = get_portf_rtn(hrp_weights.values, avg_returns) # Ensure .values for numpy operations if avg_returns is Series
+            hrp_vol = get_portf_vol(hrp_weights.values, avg_returns, cov_mat)
+            hrp_sharpe = (hrp_ret - rf_rate) / hrp_vol
+            
+            hrp_perf = pd.Series({
+                "Return": hrp_ret,
+                "Volatility": hrp_vol,
+                "Sharpe Ratio": hrp_sharpe
+            })
+
+            # Create columns
+            col1, col2 = st.columns(2)
+            
+            # Chart
+            weight_chart_data_hrp = pd.DataFrame({"Assets": hrp_weights.index, "Weights": hrp_weights.values}).sort_values(by="Weights", ascending=False)
+            weight_chart_hrp = px.bar(
+                weight_chart_data_hrp,
+                x="Assets",
+                y="Weights",
+                labels={"Weights": "Weight"},
+                title="Asset Weights (HRP)",
+                color="Assets"
+            )
+            
+            with col1:
+                st.plotly_chart(weight_chart_hrp)
+                
+            with col2:
+                print_portfolio_summary(hrp_perf, hrp_weights.values, hrp_weights.index, name="HRP")
+
+            st.info("Hierarchical Risk Parity (HRP) builds a diversified portfolio by clustering assets based on correlation and allocating risk recursively. It does not require inverting the covariance matrix, making it more robust to noise and outliers than traditional Mean-Variance Optimization.")
     else:
         st.sidebar.write("Choose some assets to build your Portfolio")
 

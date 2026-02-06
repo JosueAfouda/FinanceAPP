@@ -23,3 +23,4 @@ ta==0.11.0
 urllib3==2.6.3
 yfinance==1.1.0
 zipp==3.23.0
+html5lib==0.5.1
