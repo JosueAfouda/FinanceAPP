@@ -20,8 +20,18 @@ HEADERS = {
 def get_sp500_components():
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     response = requests.get(url, headers=HEADERS)
-    df = pd.read_html(response.text)
-    df = df[0]
+    dfs = pd.read_html(response.text)
+    
+    # Search for the table with 'Symbol' and 'Security'
+    df = None
+    for d in dfs:
+        if 'Symbol' in d.columns and 'Security' in d.columns:
+            df = d
+            break
+    if df is None:
+         # Fallback to index 0 if search fails, though less robust
+         df = dfs[0]
+
     tickers = df["Symbol"].to_list()
     tickers_companies_dict = dict(
         zip(df["Symbol"], df["Security"])
@@ -32,8 +42,18 @@ def get_sp500_components():
 def get_dax_components():
     url = "https://en.wikipedia.org/wiki/DAX"
     response = requests.get(url, headers=HEADERS)
-    df = pd.read_html(response.text)
-    df = df[4]
+    dfs = pd.read_html(response.text)
+    
+    # Search for the table with 'Ticker' and 'Company'
+    df = None
+    for d in dfs:
+        if 'Ticker' in d.columns and 'Company' in d.columns:
+            df = d
+            break
+    if df is None:
+        # Fallback to index 4 (legacy behavior) or 3 (common alternative)
+        df = dfs[4] if len(dfs) > 4 else dfs[3]
+
     tickers = df["Ticker"].to_list()
     tickers_companies_dict = dict(
         zip(df["Ticker"], df["Company"])
@@ -58,7 +78,8 @@ def get_nikkei_components():
 
         # Use Pandas to read the table and store it as a DataFrame
         df = pd.read_html(str(table))[0]
-        df['Code'] = df['Code'].astype(str) + '.T'
+        # Only append .T if not already present
+        df['Code'] = df['Code'].astype(str).apply(lambda x: x if x.endswith('.T') else x + '.T')
     else:
         print("Failed to retrieve the web page. Status code:", response.status_code)
     tickers = df["Code"].to_list()
@@ -71,8 +92,32 @@ def get_nikkei_components():
 def get_ftse_components():
     url = "https://en.wikipedia.org/wiki/FTSE_100_Index"
     response = requests.get(url, headers=HEADERS)
-    df = pd.read_html(response.text)
-    df = df[4]
+    dfs = pd.read_html(response.text)
+    
+    # Search for the table with 'Ticker' or 'EPIC'
+    df = None
+    ticker_col = "Ticker"
+    for d in dfs:
+        if "Ticker" in d.columns:
+            df = d
+            ticker_col = "Ticker"
+            break
+        elif "EPIC" in d.columns:
+            df = d
+            ticker_col = "EPIC"
+            break
+            
+    if df is None:
+        # Fallback
+        df = dfs[4]
+    
+    # Rename for consistency if found as EPIC
+    if ticker_col != "Ticker":
+        df = df.rename(columns={ticker_col: "Ticker"})
+        
+    # FTSE 100 tickers on Yahoo Finance usually need .L suffix
+    df["Ticker"] = df["Ticker"].astype(str).apply(lambda x: x if x.endswith('.L') else x + '.L')
+
     tickers = df["Ticker"].to_list()
     tickers_companies_dict = dict(
         zip(df["Ticker"], df["Company"])
@@ -84,8 +129,17 @@ def get_ftse_components():
 def get_cac40_components():
     url = "https://en.wikipedia.org/wiki/CAC_40"
     response = requests.get(url, headers=HEADERS)
-    df = pd.read_html(response.text)
-    df = df[4]
+    dfs = pd.read_html(response.text)
+    
+    # Search for the table with 'Ticker' and 'Company'
+    df = None
+    for d in dfs:
+        if 'Ticker' in d.columns and 'Company' in d.columns:
+            df = d
+            break
+    if df is None:
+         df = dfs[4] if len(dfs) > 4 else dfs[3]
+         
     tickers = df["Ticker"].to_list()
     tickers_companies_dict = dict(
         zip(df["Ticker"], df["Company"])
