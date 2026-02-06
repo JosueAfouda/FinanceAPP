@@ -25,7 +25,7 @@ with col1:
     st.image(
         "linkedin_profil.png",  # Remplacez par le chemin de votre image
         width=80,     # Ajustez la taille si nécessaire
-        use_column_width=False,
+        use_container_width=False,
     )
 
 # Colonne centrale : Titre
