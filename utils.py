@@ -149,9 +149,12 @@ def get_cac40_components():
 
 @st.cache_data
 def load_data(symbol, start, end):
-    df = yf.download(symbol, start, end)
+    df = yf.download(symbol, start, end, auto_adjust=False)
     if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
+        # Flatten if only one ticker is present to maintain compatibility with 
+        # Technical Analysis and Forecasting pages.
+        if len(df.columns.get_level_values(1).unique()) == 1:
+            df.columns = df.columns.get_level_values(0)
     return df
 
 @st.cache_resource
@@ -202,13 +205,16 @@ def print_portfolio_summary(perf, weights, assets, name):
         assets (list): list of the asset names
         name (str): the name of the portfolio
     """
-    name_portf = f"{name} portfolio Performance: ------------------"
-    st.write(name_portf)
-    for index, value in perf.items():
-        st.write(f"{index}: {100 * value:.2f}% ", end="", flush=True)
-    st.write("\nWeights")
-    for x, y in zip(assets, weights):
-        st.write(f"{x}: {100*y:.2f}% ", end="", flush=True)
+    st.write(f"**{name} portfolio Performance:**")
+    
+    # Display performance metrics
+    metrics_str = " | ".join([f"{index}: {100 * value:.2f}%" for index, value in perf.items()])
+    st.write(metrics_str)
+    
+    st.write("**Weights:**")
+    # Display weights
+    weights_str = " | ".join([f"{x}: {100*y:.2f}%" for x, y in zip(assets, weights)])
+    st.write(weights_str)
 
 
 

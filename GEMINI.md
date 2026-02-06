@@ -1,60 +1,67 @@
-# FinanceAPP - Gemini Context
+# FinanceAPP - GEMINI Project Context
 
 ## Project Overview
-**FinanceAPP** is a web-based financial analysis tool built with **Streamlit**. It empowers users to analyze stock market data from major global indices (S&P500, CAC40, FTSE100, DAX, NIKKEI 225) through technical analysis, forecasting, and asset allocation strategies.
+**FinanceAPP** is a comprehensive Python-based web application built with **Streamlit** for financial market analysis. It empowers users to perform technical analysis, forecast stock prices using machine learning (Prophet), and optimize portfolios using modern portfolio theory.
 
-## Key Features
-*   **Technical Analysis:** Interactive charts with Simple Moving Average (SMA), Bollinger Bands, and RSI using `cufflinks` and `plotly`.
-*   **Forecasting:** Stock price prediction using Facebook's `prophet`.
-*   **Asset Allocation:** Portfolio optimization (Efficient Frontier, Sharpe Ratio) using `cvxpy` and `scipy`.
-*   **Multi-Index Support:** Dynamically fetches components for various global indices via web scraping (`beautifulsoup4`, `pandas`).
+The app supports major global indices: **S&P500** (US), **CAC40** (France), **FTSE100** (UK), **DAX** (Germany), and **Nikkei 225** (Japan).
 
-## Development & Usage
+## Tech Stack & Architecture
+
+### Core Technologies
+*   **Language:** Python 3.12
+*   **Framework:** Streamlit (Multipage App structure)
+*   **Data Sources:** 
+    *   `yfinance` (Market data)
+    *   `requests` + `BeautifulSoup` + `pandas` (Scraping index components from Wikipedia/TopForeignStocks)
+
+### libraries
+*   **Visualization:** `plotly`, `cufflinks`, `matplotlib`, `seaborn`
+*   **Machine Learning & Forecasting:** `prophet` (Facebook Prophet), `scikit-learn` (Metrics: MAE, RMSE, MAPE)
+*   **Optimization:** `scipy.optimize`, `cvxpy` (Portfolio optimization)
+*   **Utilities:** `pandas`, `numpy`, `joblib`, `lxml`
+
+## Key Files & Directories
+
+*   **`Home.py`**: The main entry point of the application. Handles the landing page, contact form, and sidebar navigation.
+*   **`utils.py`**: Contains core utility functions:
+    *   **Scrapers**: Robust functions (`get_sp500_components`, etc.) with User-Agent headers to fetch ticker symbols dynamically.
+    *   **Data Loading**: `load_data` with `@st.cache_data` for performance.
+    *   **Financial Math**: Functions for portfolio statistics (`calculate_statistics`), efficient frontier (`get_efficient_frontier_scipy`), and Sharpe ratio.
+*   **`pages/`**: Contains the individual application modules:
+    *   `01_TechnicalAnalysis.py`: Interactive charting and technical indicators.
+    *   `02_Forecasting.py`: Prophet-based forecasting module. (Note: Recently refactored based on `AUDIT_FORECASTING.md` to include metrics, caching, and proper download logic).
+    *   `03_AssetAllocation.py`: Portfolio optimization and Monte Carlo simulations.
+    *   `04_Backtesting.py`: (Structure implies existence, likely for strategy backtesting).
+*   **`AUDIT_FORECASTING.md`**: An audit report highlighting previous issues in the forecasting module (broken downloads, lack of metrics). *Analysis indicates these issues have been addressed in the current code.*
+*   **`submissions.csv`**: Stores contact form submissions from the Home page.
+
+## Building & Running
 
 ### Prerequisites
-*   Python 3.x
-*   Pip
+*   Python 3.12 (Required for specific dependency compatibility)
+*   Virtual environment recommended.
 
 ### Installation
-1.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-### Running the Application
-To start the Streamlit server:
 ```bash
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Execution
+```bash
+# Run the application
 streamlit run Home.py
 ```
-The application typically runs on `http://localhost:8501`.
-
-### Data Handling
-*   **Stock Data:** Fetched in real-time using `yfinance`.
-*   **Index Components:** Scraped from Wikipedia and other sources using `requests` with a custom `User-Agent` header to prevent `HTTPError` (cached via `@st.cache_resource` in `utils.py`).
-*   **User Submissions:** Contact form submissions are saved locally to `submissions.csv`.
-
-## Codebase Structure
-
-### Core Files
-*   **`Home.py`**: The main entry point. Sets up the landing page, navigation, and contact form.
-*   **`utils.py`**: Contains critical utility functions:
-    *   Data fetching (`get_sp500_components`, `load_data`, etc.).
-    *   Financial calculations (`calculate_statistics`, `get_efficient_frontier_scipy`).
-    *   Visualization helpers.
-
-### Pages (`pages/`)
-Streamlit uses this directory to automatically create a multi-page app structure:
-*   **`01_TechnicalAnalysis.py`**: Interactively plots stock data with user-selected technical indicators.
-*   **`02_Forecasting.py`**: Implements Prophet for time-series forecasting.
-*   **`03_AssetAllocation.py`**: Performs portfolio optimization and visualization.
-*   **`04_Backtesting.py`**: (Currently a placeholder) Intended for strategy backtesting.
-
-### Configuration
-*   **`requirements.txt`**: Lists all Python dependencies.
-*   **`.devcontainer/`**: Configuration for VS Code Dev Containers.
-*   **`submissions.csv`**: Local storage for user messages.
 
 ## Development Conventions
-*   **UI Framework:** Exclusively uses Streamlit.
-*   **Data Science Stack:** Relies heavily on `pandas` for data manipulation, `numpy` for numerical operations, and `plotly`/`cufflinks` for interactive plotting.
-*   **Caching:** Uses Streamlit's `@st.cache_resource` and `@st.cache_data` decorators to optimize performance, especially for web scraping and data fetching functions in `utils.py`.
+
+1.  **Caching:** The app heavily utilizes Streamlit's caching mechanisms to optimize performance:
+    *   `@st.cache_data`: For data loading (e.g., `load_data`).
+    *   `@st.cache_resource`: For heavy computations and model loading (e.g., `train_prophet_model`, scrapers).
+2.  **Scraping Robustness:** Scrapers in `utils.py` use custom `User-Agent` headers to avoid 403 Forbidden errors.
+3.  **Visualization:** Preference for interactive `plotly` charts over static images.
+4.  **Forecasting Workflow:** 
+    *   Train/Test split for evaluation (Metrics: MAE, RMSE, MAPE).
+    *   Retraining on full data for future prediction.
+    *   Dynamic holiday handling based on the selected market index.
+5.  **Refactoring Pattern:** Evidence suggests a workflow of Auditing -> Refactoring (as seen with `AUDIT_FORECASTING.md`). Check for such documents before major changes.
