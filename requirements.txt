@@ -1,7 +1,7 @@
 altair==6.0.0
 beautifulsoup4==4.14.3
 cufflinks==0.17.3
-cvxpy==1.5.3
+cvxpy==1.6.0
 holidays==0.90
 joblib==1.5.3
 lxml==6.0.2
